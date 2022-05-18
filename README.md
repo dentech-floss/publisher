@@ -35,7 +35,7 @@ func main() {
     )
     defer publisher.Close()
 
-    appointmentServiceV1 := service.NewAppointmentServiceV1(publisher, logger) // inject it
+    appointmentServiceV1 := service.NewAppointmentServiceV1(repo, publisher, logger) // inject it
 }
 ```
 
@@ -56,6 +56,26 @@ import (
 const (
     TOPIC_APPOINTMENT_CLAIMED  = "appointment.claimed"
 )
+
+type AppointmentServiceV1 struct {
+    // embedded for forward compatibility
+    appointment_service_v1.UnimplementedAppointmentServiceServer
+    repo         repository.Repository
+    publisher    *publisher.Publisher
+    log          *logging.Logger
+}
+
+func NewAppointmentServiceV1(
+    repo repository.Repository,
+    publisher *publisher.Publisher,
+    log *logging.Logger,
+) *AppointmentServiceV1 {
+    return &AppointmentServiceV1{
+        repo:         repo,
+        publisher:    publisher,
+        log:          log,
+    }
+}
 
 func (s *AppointmentServiceV1) ClaimAppointment(
     ctx context.Context,
