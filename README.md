@@ -83,31 +83,14 @@ func (s *AppointmentServiceV1) ClaimAppointment(
 ) (*appointment_service_v1.ClaimAppointmentResponse, error) {
 
     // Ensure trace information + the request is part of the log entries
-    logWithContext := s.log.WithContext(
-        ctx,
-        logging.ProtoField("request", request),
-    )
+    logWithContext := s.log.WithContext(ctx, logging.ProtoField("request", request))
 
-    ctxClaimAppointment, cancel := context.WithTimeout(ctx, time.Second*1)
-    defer cancel()
-
-    appointment, claimed, err := s.repo.ClaimAppointment(ctxClaimAppointment, request.appointmentId, request.bookingId)
-    if err != nil {
-        if errors.Is(err, repository.ErrModelNotFound) {
-            logWithContext.Warn("Appointment does not exist", logging.ErrorField(err))
-            return &appointment_service_v1.ClaimAppointmentResponse{},
-                status.Errorf(codes.NotFound, "Appointment does not exist")
-        } else {
-            logWithContext.Error("Claim appointment failed with internal error", logging.ErrorField(err))
-            return &appointment_service_v1.ClaimAppointmentResponse{},
-                status.Errorf(codes.Internal, "An internal error occurred")
-        }
-    }
+    claimed, err := s.repo.ClaimAppointment(...)
 
     if claimed {
         s.publishAppointmentClaimedEvent(ctx, logWithContext, appointment)
     } else {
-        logWithContext.Warn("Appointment was not claimed since it was already booked")
+        logWithContext.Warn("Appointment was not claimed...")
     }
 
     return &appointment_service_v1.ClaimAppointmentResponse{
