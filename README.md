@@ -154,8 +154,8 @@ import (
 
     appointment_service_v1 "go.buf.build/dentechse/go-grpc-gateway-openapiv2/dentechse/service-definitions/api/appointment/v1"
 
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
+    "google.golang.org/protobuf/proto"
+    "google.golang.org/protobuf/types/known/timestamppb"
 
     "github.com/stretchr/testify/require"
 )
