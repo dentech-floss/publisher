@@ -75,10 +75,7 @@ func (s *AppointmentServiceV1) ClaimAppointment(
         logWithContext.Warn("Appointment was not claimed...")
     }
 
-    return &appointment_service_v1.ClaimAppointmentResponse{
-        Appointment: s.appointmentToDTO(appointment),
-        Claimed:     claimed,
-    }, nil
+    ...
 }
 
 func (s *AppointmentServiceV1) publishAppointmentClaimedEvent(
