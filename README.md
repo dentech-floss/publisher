@@ -26,9 +26,9 @@ func main() {
     logger := logging.NewLogger(&logging.LoggerConfig{})
     defer logger.Sync()
 
-    publisher := messaging.NewPublisher(
+    publisher := publisher.NewPublisher(
         logger.Logger.Logger, // the *zap.Logger is wrapped like a matryoshka doll :)
-        &messaging.PublisherConfig{
+        &publisher.PublisherConfig{
             OnGCP: true,
             ProjectId: "mysuperduperproject",  // only applicable if OnGCP is true
         },
@@ -164,9 +164,9 @@ func Test_ClaimAppointment(t *testing.T) {
 
     require := require.New(t)
 
-    fp := messaging.NewFakePublisher() // Let's us get hold of published messages
-    fakePublisher := fp.(*messaging.FakePublisher)
-    publisher := &messaging.Publisher{fp}
+    fp := publisher.NewFakePublisher() // Let's us get hold of published messages
+    fakePublisher := fp.(*publisher.FakePublisher)
+    publisher := &publisher.Publisher{fp}
     appointmentServiceV1 := service.NewAppointmentServiceV1(publisher) // inject it
 
     fakePublisher.ClearPublished() // clear any existing messages...

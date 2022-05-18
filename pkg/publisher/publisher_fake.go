@@ -1,4 +1,4 @@
-package messaging
+package publisher
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
