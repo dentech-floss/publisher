@@ -7,7 +7,7 @@ Also, this lib take care of the creation of Watermill messages carrying protobuf
 ## Install
 
 ```
-go get github.com/dentech-floss/publisher@v0.1.0
+go get github.com/dentech-floss/publisher@v0.1.1
 ```
 
 ## Usage
