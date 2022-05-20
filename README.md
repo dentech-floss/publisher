@@ -19,18 +19,28 @@ package example
 
 import (
     "github.com/dentech-floss/logging/pkg/logging"
+    "github.com/dentech-floss/metadata/pkg/metadata"
     "github.com/dentech-floss/publisher/pkg/publisher"
+    "github.com/dentech-floss/revision/pkg/revision"
 )
 
 func main() {
-    logger := logging.NewLogger(&logging.LoggerConfig{})
-    defer logger.Sync()
+
+    metadata := metadata.NewMetadata()
+
+    logger := logging.NewLogger(
+        &logging.LoggerConfig{
+            OnGCP:       metadata.OnGCP,
+            ServiceName: revision.ServiceName,
+        },
+    )
+    defer logger.Sync() // flushes buffer, if any
 
     publisher := publisher.NewPublisher(
         logger.Logger.Logger, // the *zap.Logger is wrapped like a matryoshka doll :)
         &publisher.PublisherConfig{
-            OnGCP: true,
-            ProjectId: "mysuperduperproject",  // only applicable if OnGCP is true
+            OnGCP:     metadata.OnGCP,
+            ProjectId: metadata.ProjectID,
         },
     )
     defer publisher.Close()
@@ -174,11 +184,8 @@ func Test_ClaimAppointment(t *testing.T) {
         appointmentDTO := claimedEvent.Appointment
         require.Equal(util.Int32ToString(appointment.ID), appointmentDTO.Id)
         require.Equal(util.Int32ToString(appointment.CompanyID), appointmentDTO.ClinicId)
-        require.Equal(util.Int32ToString(appointment.TreatmentID), appointmentDTO.TreatmentId)
-        require.NotNil(appointmentDTO.BookingId)
-        require.Equal(util.Int32ToString(bookingId), appointmentDTO.BookingId.Value)
-        require.Equal(datetime.TimeToISO8601DateTimeString(appointment.StartTime), appointmentDTO.StartTime)
         require.WithinDuration(timestamppb.New(now).AsTime(), claimedEvent.ClaimedAt.AsTime(), 0)
+        ...
     default:
         require.FailNow("Unexpected event type")
     }
