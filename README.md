@@ -192,3 +192,9 @@ func Test_ClaimAppointment(t *testing.T) {
 }
 
 ```
+
+## Retry
+
+10 times, with exponential backoff... can take up to 30 seconds at a maximum so use a goroutine...
+
+TODO: document properly

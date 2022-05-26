@@ -110,3 +110,23 @@ func (p *Publisher) NewMessage(
 
 	return msg, nil
 }
+
+// func (p *Publisher) PublishWithRetry(topic string, messages ...*message.Message) error {
+
+// 	rm := p.createRetryMiddleware()
+// 	rm(topic, messages...)
+
+// 	h := p.retry.Middleware(func(msg *message.Message) ([]*message.Message, error) {
+// 		err := p.Publish(topic, msg)
+// 		return nil, err
+// 	})
+
+// 	for _, msg := range messages {
+// 		_, err := h(msg)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+
+// 	return nil
+// }
