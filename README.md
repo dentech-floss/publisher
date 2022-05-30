@@ -166,7 +166,8 @@ func Test_ClaimAppointment(t *testing.T) {
 
     fp := publisher.NewFakePublisher() // Let's us get hold of published messages
     fakePublisher := fp.(*publisher.FakePublisher)
-    publisher := &publisher.Publisher{fp}
+    publisher := &publisher.Publisher{Publisher: fp, Retry: nil}
+
     appointmentServiceV1 := service.NewAppointmentServiceV1(publisher) // inject it
 
     fakePublisher.ClearPublished() // clear any existing messages...
