@@ -93,8 +93,8 @@ func (c *PublisherRetryConfig) setDefaults() {
 }
 
 type Publisher struct {
-	wPublisher message.Publisher
-	retry      *middleware.Retry
+	Publisher message.Publisher
+	Retry     *middleware.Retry
 }
 
 func NewPublisher(
@@ -138,8 +138,8 @@ func NewPublisher(
 	wotelPublisherDecorator := wotel.NewNamedPublisherDecorator(*config.Name, tracePropagatingPublisherDecorator)
 
 	return &Publisher{
-		wPublisher: wotelPublisherDecorator,
-		retry:      createRetry(logger, config.RetryConfig),
+		Publisher: wotelPublisherDecorator,
+		Retry:     createRetry(logger, config.RetryConfig),
 	}
 }
 
@@ -174,19 +174,23 @@ func (p *Publisher) NewMessage(
 }
 
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
-	h := p.retry.Middleware(func(msg *message.Message) ([]*message.Message, error) {
-		err := p.wPublisher.Publish(topic, msg)
-		return nil, err
-	})
-	for _, msg := range messages {
-		_, err := h(msg)
-		if err != nil {
-			return err
+	if p.Retry == nil {
+		return p.Publisher.Publish(topic, messages...)
+	} else {
+		h := p.Retry.Middleware(func(msg *message.Message) ([]*message.Message, error) {
+			err := p.Publisher.Publish(topic, msg)
+			return nil, err
+		})
+		for _, msg := range messages {
+			_, err := h(msg)
+			if err != nil {
+				return err
+			}
 		}
+		return nil
 	}
-	return nil
 }
 
 func (p *Publisher) Close() error {
-	return p.wPublisher.Close()
+	return p.Publisher.Close()
 }

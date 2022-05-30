@@ -44,7 +44,7 @@ func Test_Publish_Retry(t *testing.T) {
 	)
 
 	// swap out the underlying watermill publisher for our failing publisher
-	publisher.wPublisher = &failingPublisher
+	publisher.Publisher = &failingPublisher
 
 	err := publisher.Publish("topic", message.NewMessage(watermill.NewUUID(), []byte("test")))
 	if err != nil {
