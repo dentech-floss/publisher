@@ -2,7 +2,9 @@
 
 Watermill publisher that is setup to use [watermill-googlecloud](https://github.com/ThreeDotsLabs/watermill-googlecloud) to publish messages, and which is preconfigured for distributed Opentelemetry tracing. For this we use both the official [watermill-opentelemetry](https://github.com/voi-oss/watermill-opentelemetry) project and our custom complement [dentech-floss/watermill-opentelemetry-go-extra](https://github.com/dentech-floss/watermill-opentelemetry-go-extra) so a span is created when a message is published and which then is propagated to the subscriber(s) for extraction.
 
-Also, this lib take care of the creation of Watermill messages carrying protobuf payload (marshalling + making sure that the context is set on the message to enable the above mentioned tracing) so please use the provided "NewMessage" func as shown below in the example. Anothing that that's built into this lib is retry functionality, a configurable number of retries will attempted by this publisher using an exponential backoffice policy.
+Also, this lib take care of the creation of Watermill messages carrying protobuf payload (marshalling + making sure that the context is set on the message to enable the above mentioned tracing) so please use the provided "NewMessage" func as shown below in the example. 
+
+Anothing that that's built into this lib is retry functionality, a configurable number of retries will attempted by this publisher using an exponential backoffice policy upon an error.
 
 ## Install
 
