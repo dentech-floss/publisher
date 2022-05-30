@@ -2,17 +2,17 @@
 
 Watermill publisher that is setup to use [watermill-googlecloud](https://github.com/ThreeDotsLabs/watermill-googlecloud) to publish messages, and which is preconfigured for distributed Opentelemetry tracing. For this we use both the official [watermill-opentelemetry](https://github.com/voi-oss/watermill-opentelemetry) project and our custom complement [dentech-floss/watermill-opentelemetry-go-extra](https://github.com/dentech-floss/watermill-opentelemetry-go-extra) so a span is created when a message is published and which then is propagated to the subscriber(s) for extraction.
 
-Also, this lib take care of the creation of Watermill messages carrying protobuf payload (marshalling + making sure that the context is set on the message to enable the above mentioned tracing) so please use the provided "NewMessage" func as shown below in the example :)
+Also, this lib take care of the creation of Watermill messages carrying protobuf payload (marshalling + making sure that the context is set on the message to enable the above mentioned tracing) so please use the provided "NewMessage" func as shown below in the example. Anothing that that's built into this lib is retry functionality, a configurable number of retries will attempted by this publisher using an exponential backoffice policy.
 
 ## Install
 
 ```
-go get github.com/dentech-floss/publisher@v0.1.1
+go get github.com/dentech-floss/publisher@v0.1.2
 ```
 
 ## Usage
 
-Create the publisher:
+Create the publisher (since we don't provide custom retry configuration then a default of up to 10 retries will be attempted upon an error):
 
 ```go
 package example
@@ -39,8 +39,9 @@ func main() {
     publisher := publisher.NewPublisher(
         logger.Logger.Logger, // the *zap.Logger is wrapped like a matryoshka doll :)
         &publisher.PublisherConfig{
-            OnGCP:     metadata.OnGCP,
-            ProjectId: metadata.ProjectID,
+            OnGCP:       metadata.OnGCP,
+            ProjectId:   metadata.ProjectID,
+            //RetryConfig: &PublisherRetryConfig{...}, provide this to customize the retry settings
         },
     )
     defer publisher.Close()
@@ -104,6 +105,7 @@ func (s *AppointmentServiceV1) publishAppointmentClaimedEvent(
     s.publishAsync(ctx, logWithContext, TOPIC_APPOINTMENT_CLAIMED, event)
 }
 
+// Publish async since there might be retries with an exponential backoff.
 func (s *AppointmentServiceV1) publishAsync(
     ctx context.Context,
     logWithContext *logging.LoggerWithContext,
@@ -120,6 +122,10 @@ func (s *AppointmentServiceV1) publishAsync(
                 logging.ErrorField(err),
             )
         } else {
+            // This can take some time to complete if there are disturbances/retries,
+            // and if all retries fails then the error needs to be handled accordingly.
+            // If the message is vital then store it in a database and retry it from
+            // there for example, bare minimum is to log it on error level at least.
             if err := s.publisher.Publish(topic, msg); err != nil {
                 logWithContext.Error(
                     "Failed to publish message",
@@ -192,9 +198,3 @@ func Test_ClaimAppointment(t *testing.T) {
 }
 
 ```
-
-## Retry
-
-10 times, with exponential backoff... can take up to 30 seconds at a maximum so use a goroutine...
-
-TODO: document properly

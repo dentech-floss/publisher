@@ -26,18 +26,27 @@ func (f *failingPublisher) Close() error {
 	return nil
 }
 
-func Test_PublishWithRetry(t *testing.T) {
+func Test_Publish_Retry(t *testing.T) {
 
 	maxRetries := 3
 
 	failingPublisher := failingPublisher{runCount: maxRetries}
 
-	config := RetryPublisherConfig{}
-	config.setDefaults()
+	publisher := NewPublisher(
+		zap.NewNop(),
+		&PublisherConfig{
+			OnGCP:     false,
+			ProjectId: "",
+			RetryConfig: &PublisherRetryConfig{
+				MaxRetries: &maxRetries,
+			},
+		},
+	)
 
-	retryPublisher := &RetryPublisher{&failingPublisher, createRetry(zap.NewNop(), &config)}
+	// swap out the underlying watermill publisher for our failing publisher
+	publisher.wPublisher = &failingPublisher
 
-	err := retryPublisher.Publish("topic", message.NewMessage(watermill.NewUUID(), []byte("test")))
+	err := publisher.Publish("topic", message.NewMessage(watermill.NewUUID(), []byte("test")))
 	if err != nil {
 		t.Fatal(err)
 	}

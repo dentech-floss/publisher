@@ -6,6 +6,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 
 	"github.com/ThreeDotsLabs/watermill-googlecloud/pkg/googlecloud"
 
@@ -32,6 +33,7 @@ type PublisherConfig struct {
 	ConnectTimeoutSecs     *int
 	PublishTimeoutSecs     *int
 	GrpcConnectionPoolSize *int
+	RetryConfig            *PublisherRetryConfig
 }
 
 func (c *PublisherConfig) setDefaults() {
@@ -47,10 +49,52 @@ func (c *PublisherConfig) setDefaults() {
 	if c.GrpcConnectionPoolSize == nil {
 		c.GrpcConnectionPoolSize = &defaultGrpcConnectionPool
 	}
+	if c.RetryConfig == nil {
+		c.RetryConfig = &PublisherRetryConfig{}
+	}
+	c.RetryConfig.setDefaults()
+}
+
+var defaultMaxRetries = 10
+var defaultInitialInterval = 500 * time.Millisecond
+var defaultRandomizationFactor = 0.5
+var defaultMultiplier = 1.5
+var defaultMaxInterval = 60 * time.Second
+var defaultMaxElapsedTime = 15 * time.Minute
+
+type PublisherRetryConfig struct {
+	MaxRetries          *int
+	InitialInterval     *time.Duration
+	RandomizationFactor *float64
+	Multiplier          *float64
+	MaxInterval         *time.Duration
+	MaxElapsedTime      *time.Duration
+}
+
+func (c *PublisherRetryConfig) setDefaults() {
+	if c.MaxRetries == nil {
+		c.MaxRetries = &defaultMaxRetries
+	}
+	if c.InitialInterval == nil {
+		c.InitialInterval = &defaultInitialInterval
+	}
+	if c.RandomizationFactor == nil {
+		c.RandomizationFactor = &defaultRandomizationFactor
+	}
+	if c.Multiplier == nil {
+		c.Multiplier = &defaultMultiplier
+	}
+	if c.MaxInterval == nil {
+		c.MaxInterval = &defaultMaxInterval
+	}
+	if c.MaxElapsedTime == nil {
+		c.MaxElapsedTime = &defaultMaxElapsedTime
+	}
 }
 
 type Publisher struct {
-	message.Publisher
+	wPublisher message.Publisher
+	retry      *middleware.Retry
 }
 
 func NewPublisher(
@@ -93,7 +137,25 @@ func NewPublisher(
 	tracePropagatingPublisherDecorator := wotelfloss.NewTracePropagatingPublisherDecorator(publisher)
 	wotelPublisherDecorator := wotel.NewNamedPublisherDecorator(*config.Name, tracePropagatingPublisherDecorator)
 
-	return &Publisher{wotelPublisherDecorator}
+	return &Publisher{
+		wPublisher: wotelPublisherDecorator,
+		retry:      createRetry(logger, config.RetryConfig),
+	}
+}
+
+func createRetry(
+	logger *zap.Logger,
+	config *PublisherRetryConfig,
+) *middleware.Retry {
+	return &middleware.Retry{
+		MaxRetries:          *config.MaxRetries,
+		InitialInterval:     *config.InitialInterval,
+		RandomizationFactor: *config.RandomizationFactor,
+		Multiplier:          *config.Multiplier,
+		MaxInterval:         *config.MaxInterval,
+		MaxElapsedTime:      *config.MaxElapsedTime,
+		Logger:              watermillzap.NewLogger(logger),
+	}
 }
 
 func (p *Publisher) NewMessage(
@@ -111,22 +173,20 @@ func (p *Publisher) NewMessage(
 	return msg, nil
 }
 
-// func (p *Publisher) PublishWithRetry(topic string, messages ...*message.Message) error {
+func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
+	h := p.retry.Middleware(func(msg *message.Message) ([]*message.Message, error) {
+		err := p.wPublisher.Publish(topic, msg)
+		return nil, err
+	})
+	for _, msg := range messages {
+		_, err := h(msg)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-// 	rm := p.createRetryMiddleware()
-// 	rm(topic, messages...)
-
-// 	h := p.retry.Middleware(func(msg *message.Message) ([]*message.Message, error) {
-// 		err := p.Publish(topic, msg)
-// 		return nil, err
-// 	})
-
-// 	for _, msg := range messages {
-// 		_, err := h(msg)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }
+func (p *Publisher) Close() error {
+	return p.wPublisher.Close()
+}
