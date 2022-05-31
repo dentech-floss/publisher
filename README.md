@@ -4,7 +4,7 @@ Watermill publisher that is setup to use [watermill-googlecloud](https://github.
 
 Also, this lib take care of the creation of Watermill messages carrying protobuf payload (marshalling + making sure that the context is set on the message to enable the above mentioned tracing) so please use the provided "NewMessage" func as shown below in the example. 
 
-Anothing that that's built into this lib is retry functionality, a configurable number of retries will attempted by this publisher using an exponential backoffice policy upon an error.
+Another thing that's built into this lib is retry functionality, where a configurable number of retries will be attempted by this publisher using an exponential backoffice policy upon an error.
 
 ## Install
 
@@ -14,32 +14,22 @@ go get github.com/dentech-floss/publisher@v0.1.3
 
 ## Usage
 
-Create the publisher (since we don't provide custom retry configuration then a default of up to 10 retries will be attempted upon an error):
+Create the publisher:
 
 ```go
 package example
 
 import (
-    "github.com/dentech-floss/logging/pkg/logging"
     "github.com/dentech-floss/metadata/pkg/metadata"
     "github.com/dentech-floss/publisher/pkg/publisher"
-    "github.com/dentech-floss/revision/pkg/revision"
 )
 
 func main() {
 
     metadata := metadata.NewMetadata()
 
-    logger := logging.NewLogger(
-        &logging.LoggerConfig{
-            OnGCP:       metadata.OnGCP,
-            ServiceName: revision.ServiceName,
-        },
-    )
-    defer logger.Sync() // flushes buffer, if any
-
     publisher := publisher.NewPublisher(
-        logger.Logger.Logger, // the *zap.Logger is wrapped like a matryoshka doll :)
+        logger,
         &publisher.PublisherConfig{
             OnGCP:       metadata.OnGCP,
             ProjectId:   metadata.ProjectID,
@@ -48,7 +38,7 @@ func main() {
     )
     defer publisher.Close()
 
-    appointmentServiceV1 := service.NewAppointmentServiceV1(repo, publisher, logger) // inject it
+    appointmentServiceV1 := service.NewAppointmentServiceV1(repo, publisher) // inject it
 }
 ```
 
@@ -80,13 +70,9 @@ func (s *AppointmentServiceV1) ClaimAppointment(
     // Ensure trace information + the request is part of the log entries
     logWithContext := s.log.WithContext(ctx, logging.ProtoField("request", request))
 
-    claimed, err := s.repo.ClaimAppointment(...)
+    s.repo.ClaimAppointment(appointment, ...)
 
-    if claimed {
-        s.publishAppointmentClaimedEvent(ctx, logWithContext, appointment)
-    } else {
-        logWithContext.Warn("Appointment was not claimed...")
-    }
+    s.publishAppointmentClaimedEvent(ctx, logWithContext, appointment)
 
     ...
 }
