@@ -6,8 +6,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
-
-	"go.uber.org/zap"
+	"github.com/dentech-floss/logging/pkg/logging"
 )
 
 type failingPublisher struct {
@@ -27,13 +26,12 @@ func (f *failingPublisher) Close() error {
 }
 
 func Test_Publish_Retry(t *testing.T) {
-
 	maxRetries := 3
 
 	failingPublisher := failingPublisher{runCount: maxRetries}
 
 	publisher := NewPublisher(
-		zap.NewNop(),
+		logging.NewLogger(nil),
 		&PublisherConfig{
 			OnGCP:     false,
 			ProjectId: "",
