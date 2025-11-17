@@ -2,14 +2,14 @@
 
 Watermill publisher that is setup to use [watermill-googlecloud](https://github.com/ThreeDotsLabs/watermill-googlecloud) to publish messages, and which is preconfigured for distributed Opentelemetry tracing. For this we use both the official [watermill-opentelemetry](https://github.com/voi-oss/watermill-opentelemetry) project and our custom complement [dentech-floss/watermill-opentelemetry-go-extra](https://github.com/dentech-floss/watermill-opentelemetry-go-extra) so a span is created when a message is published and which then is propagated to the subscriber(s) for extraction.
 
-Also, this lib take care of the creation of Watermill messages carrying protobuf payload (marshalling + making sure that the context is set on the message to enable the above mentioned tracing) so please use the provided "NewMessage" func as shown below in the example. 
+Also, this lib take care of the creation of Watermill messages carrying protobuf payload (marshalling + making sure that the context is set on the message to enable the above mentioned tracing) so please use the provided "NewMessage" func as shown below in the example.
 
 Another thing that's built into this lib is retry functionality, where a configurable number of retries will be attempted by this publisher using an exponential backoffice policy upon an error.
 
 ## Install
 
 ```
-go get github.com/dentech-floss/publisher@v0.1.3
+go get github.com/dentech-floss/publisher@v0.2.0
 ```
 
 ## Usage
@@ -68,7 +68,7 @@ func (s *AppointmentServiceV1) ClaimAppointment(
 ) (*appointment_service_v1.ClaimAppointmentResponse, error) {
 
     // Ensure trace information + the request is part of the log entries
-    logWithContext := s.log.WithContext(ctx, logging.ProtoField("request", request))
+    logWithContext := s.log.WithContext(ctx, logging.Proto("request", request))
 
     s.repo.ClaimAppointment(appointment, ...)
 
@@ -105,9 +105,9 @@ func (s *AppointmentServiceV1) publishAsync(
         if err != nil {
             logWithContext.Error(
                 "Failed to create message",
-                logging.StringField("topic", topic),
-                logging.ProtoField("payload", event),
-                logging.ErrorField(err),
+                logging.String("topic", topic),
+                logging.Proto("payload", event),
+                logging.Error(err),
             )
         } else {
             // This can take some time to complete if there are disturbances/retries,
@@ -117,9 +117,9 @@ func (s *AppointmentServiceV1) publishAsync(
             if err := s.publisher.Publish(topic, msg); err != nil {
                 logWithContext.Error(
                     "Failed to publish message",
-                    logging.StringField("topic", topic),
-                    logging.ProtoField("payload", event),
-                    logging.ErrorField(err),
+                    logging.String("topic", topic),
+                    logging.Proto("payload", event),
+                    logging.Error(err),
                 )
             }
         }
