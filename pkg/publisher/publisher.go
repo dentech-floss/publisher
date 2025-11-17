@@ -10,21 +10,20 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill-googlecloud/pkg/googlecloud"
 
-	"github.com/garsue/watermillzap"
-
+	"github.com/dentech-floss/logging/pkg/logging"
 	wotelfloss "github.com/dentech-floss/watermill-opentelemetry-go-extra/pkg/opentelemetry"
 	wotel "github.com/voi-oss/watermill-opentelemetry/pkg/opentelemetry"
 
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/proto"
-
-	"go.uber.org/zap"
 )
 
-var defaultPublisherName = "pubsub.Publish"
-var defaultConnectTimeoutSecs = 20
-var defaultPublishTimeoutSecs = 10
-var defaultGrpcConnectionPool = 10
+var (
+	defaultPublisherName      = "pubsub.Publish"
+	defaultConnectTimeoutSecs = 20
+	defaultPublishTimeoutSecs = 10
+	defaultGrpcConnectionPool = 10
+)
 
 type PublisherConfig struct {
 	OnGCP                  bool
@@ -55,12 +54,14 @@ func (c *PublisherConfig) setDefaults() {
 	c.RetryConfig.setDefaults()
 }
 
-var defaultMaxRetries = 10
-var defaultInitialInterval = 500 * time.Millisecond
-var defaultRandomizationFactor = 0.5
-var defaultMultiplier = 1.5
-var defaultMaxInterval = 60 * time.Second
-var defaultMaxElapsedTime = 15 * time.Minute
+var (
+	defaultMaxRetries          = 10
+	defaultInitialInterval     = 500 * time.Millisecond
+	defaultRandomizationFactor = 0.5
+	defaultMultiplier          = 1.5
+	defaultMaxInterval         = 60 * time.Second
+	defaultMaxElapsedTime      = 15 * time.Minute
+)
 
 type PublisherRetryConfig struct {
 	MaxRetries          *int
@@ -98,7 +99,7 @@ type Publisher struct {
 }
 
 func NewPublisher(
-	logger *zap.Logger,
+	logger *logging.Logger,
 	config *PublisherConfig,
 ) *Publisher {
 	config.setDefaults()
@@ -116,7 +117,7 @@ func NewPublisher(
 					option.WithGRPCConnectionPool(*config.GrpcConnectionPoolSize),
 				},
 			},
-			watermillzap.NewLogger(logger),
+			logging.NewWatermillAdapter(logger),
 		)
 	} else {
 		publisher = NewFakePublisher()
@@ -144,7 +145,7 @@ func NewPublisher(
 }
 
 func createRetry(
-	logger *zap.Logger,
+	logger *logging.Logger,
 	config *PublisherRetryConfig,
 ) *middleware.Retry {
 	return &middleware.Retry{
@@ -154,7 +155,7 @@ func createRetry(
 		Multiplier:          *config.Multiplier,
 		MaxInterval:         *config.MaxInterval,
 		MaxElapsedTime:      *config.MaxElapsedTime,
-		Logger:              watermillzap.NewLogger(logger),
+		Logger:              logging.NewWatermillAdapter(logger),
 	}
 }
 
@@ -162,7 +163,6 @@ func (p *Publisher) NewMessage(
 	ctx context.Context,
 	payload proto.Message,
 ) (*message.Message, error) {
-
 	bytes, err := proto.Marshal(payload)
 	if err != nil {
 		return nil, err
