@@ -1,8 +1,8 @@
 module github.com/dentech-floss/publisher
 
-go 1.24
+go 1.26
 
-toolchain go1.24.10
+toolchain go1.26.0
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.1
