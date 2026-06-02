@@ -5,7 +5,7 @@ go 1.26
 toolchain go1.26.0
 
 require (
-	github.com/ThreeDotsLabs/watermill v1.5.1
+	github.com/ThreeDotsLabs/watermill v1.5.2
 	github.com/ThreeDotsLabs/watermill-googlecloud v1.2.6
 	github.com/dentech-floss/logging v0.3.0
 	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1
