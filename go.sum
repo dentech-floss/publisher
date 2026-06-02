@@ -36,8 +36,8 @@ github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2/go.mod h1:qwXFYgsP6T7X
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dentech-floss/logging v0.3.0 h1:WrN4NtuSB5ZNmHQgmfL+MpJlAGk/AQ38rxK7LkwUv1A=
-github.com/dentech-floss/logging v0.3.0/go.mod h1:cVPZaSDJ0EypoVpVZqKFUzMRQqles4SH5IlplU7j2ro=
+github.com/dentech-floss/logging v0.3.5 h1:nxowgkFqnMbSdeqo+N/nD+vJSJB8mrYBCxROTH4mvTQ=
+github.com/dentech-floss/logging v0.3.5/go.mod h1:BWR/846Dfl39hQ2DxGm99lQRcTR7HM0M4WYebjoaets=
 github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1 h1:HIfbxzySVK2tTiG6Y/3Xns17tY1Cl9/Qt2gnuwsRxuM=
 github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1/go.mod h1:hkpeHkMjmMLpS8yy0oPLTATiuCqBkP4oNtr9NpBvOM4=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
