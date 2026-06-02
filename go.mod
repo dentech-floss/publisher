@@ -6,7 +6,7 @@ toolchain go1.26.0
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.1
-	github.com/ThreeDotsLabs/watermill-googlecloud v1.2.0
+	github.com/ThreeDotsLabs/watermill-googlecloud v1.2.6
 	github.com/dentech-floss/logging v0.3.0
 	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
@@ -32,8 +32,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.16 // indirect
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
-	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
