@@ -11,7 +11,7 @@ require (
 	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
 	google.golang.org/api v0.183.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
