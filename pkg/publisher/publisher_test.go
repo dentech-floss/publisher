@@ -31,7 +31,7 @@ func Test_Publish_Retry(t *testing.T) {
 	failingPublisher := failingPublisher{runCount: maxRetries}
 
 	publisher := NewPublisher(
-		logging.NewLogger(nil),
+		logging.NewLogger(&logging.LoggerConfig{}),
 		&PublisherConfig{
 			OnGCP:     false,
 			ProjectId: "",
