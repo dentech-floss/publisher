@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.3
-	github.com/ThreeDotsLabs/watermill-googlecloud v1.2.6
+	github.com/ThreeDotsLabs/watermill-googlecloud/v2 v2.0.1
 	github.com/dentech-floss/logging v0.3.7
 	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.2
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
@@ -18,7 +18,6 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.12.0 // indirect
-	cloud.google.com/go/pubsub v1.51.0 // indirect
 	cloud.google.com/go/pubsub/v2 v2.6.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
@@ -38,8 +37,8 @@ require (
 	github.com/sony/gobreaker v1.0.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.67.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.68.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
