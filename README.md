@@ -9,7 +9,7 @@ Another thing that's built into this lib is retry functionality, where a configu
 ## Install
 
 ```
-go get github.com/dentech-floss/publisher@v0.2.0
+go get github.com/dentech-floss/publisher@v0.2.3
 ```
 
 ## Usage
