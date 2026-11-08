@@ -173,6 +173,34 @@ func TestNATSSubjects(t *testing.T) {
 	}
 }
 
+func TestNATSUnmappedTopicKeepsTheTopic(t *testing.T) {
+	env := setupNATS(t)
+	p := env.publisher(t)
+	for _, topic := range []string{"other.Topic", "other_topic"} {
+		if err := p.Publish(topic, newMsg(strings.ReplaceAll(topic, ".", "-"), nil)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s, err := env.js.Stream(context.Background(), "UNMAPPED")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var topics []string
+	for seq := uint64(1); seq <= 2; seq++ {
+		m, err := s.GetMsg(context.Background(), seq)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if m.Subject != "unmapped.other_topic" {
+			t.Errorf("subject %s", m.Subject)
+		}
+		topics = append(topics, m.Header.Get(MetadataUnmappedTopic))
+	}
+	if topics[0] != "other.Topic" || topics[1] != "other_topic" {
+		t.Errorf("unmapped_topic headers %v, want the original topics", topics)
+	}
+}
+
 func TestNATSSkippedTopic(t *testing.T) {
 	env := setupNATS(t)
 	p := env.publisher(t)
@@ -257,13 +285,17 @@ func TestNATSConfigErrorsPanic(t *testing.T) {
 		config PublisherConfig
 		want   string
 	}{
-		"unknown broker":      {PublisherConfig{Broker: "kafka"}, "unknown broker"},
-		"no URL":              {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{MappingFile: env.mapping}}, "NATS_URL"},
-		"no mapping":          {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url}}, "NATS_MAPPING_FILE"},
-		"user and creds":      {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: env.mapping, User: "u", Password: "p", CredsFile: "/c"}}, "not both"},
-		"two kinds":           {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    skip: true\n    subject: x.y.z\n")}}, "exactly one of"},
-		"attribute no domain": {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n")}}, "no domain"},
-		"server down":         {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: "nats://127.0.0.1:1", MappingFile: env.mapping}}, "connecting to NATS"},
+		"unknown broker":          {PublisherConfig{Broker: "kafka"}, "unknown broker"},
+		"no URL":                  {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{MappingFile: env.mapping}}, "NATS_URL"},
+		"no mapping":              {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url}}, "NATS_MAPPING_FILE"},
+		"user and creds":          {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: env.mapping, User: "u", Password: "p", CredsFile: "/c"}}, "not both"},
+		"two kinds":               {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    skip: true\n    subject: x.y.z\n")}}, "exactly one of"},
+		"attribute no domain":     {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n")}}, "no domain"},
+		"subject with a space":    {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    subject: x.y z\n")}}, "whitespace or a wildcard"},
+		"subject with a wildcard": {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n    domain: x\n    subjects:\n      V: x.>\n")}}, "whitespace or a wildcard"},
+		"empty token":             {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    subject: x..y\n")}}, "empty token"},
+		"bad domain":              {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n    domain: my domain\n")}}, "whitespace or a wildcard"},
+		"server down":             {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: "nats://127.0.0.1:1", MappingFile: env.mapping}}, "connecting to NATS"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			for _, v := range []string{"BROKER", "NATS_URL", "NATS_USER", "NATS_PASSWORD", "NATS_CREDS_FILE", "NATS_MAPPING_FILE", "NATS_CA_FILE"} {

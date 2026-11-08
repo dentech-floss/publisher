@@ -55,7 +55,9 @@ topics:
 Fallbacks, each logged as a warning so missing entries show up:
 
 - A missing or unknown attribute value goes to `<domain>.unmapped.<value>` (lower case; `none` when the message has no value), which the domain's stream still captures.
-- A topic that isn't in the mapping goes to `unmapped.<topic>`. Give `unmapped.>` a stream of its own if you want to keep those.
+- A topic that isn't in the mapping goes to `unmapped.<topic>`, with the topic as published in the `unmapped_topic` header (the subject is lower case with `_`, so two topics can share it). Give `unmapped.>` a stream of its own if you want to keep those.
+
+The mapping is checked at start: a subject (or `domain`) with an empty token, whitespace or a wildcard panics in `NewPublisher`.
 
 ## Usage
 

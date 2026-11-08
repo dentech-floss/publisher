@@ -138,8 +138,34 @@ func loadNATSMapping(path string) (*natsMapping, error) {
 		if kinds != 1 {
 			return nil, fmt.Errorf("NATS mapping %s: topic %s needs exactly one of skip, subject or attribute", path, name)
 		}
+		subjects := map[string]string{"subject": t.Subject, "domain": t.Domain}
+		for value, s := range t.Subjects {
+			subjects["subjects."+value] = s
+		}
+		for field, s := range subjects {
+			if s == "" && (field == "subject" || field == "domain") {
+				continue
+			}
+			if err := validSubject(s); err != nil {
+				return nil, fmt.Errorf("NATS mapping %s: topic %s, %s: %w", path, name, field, err)
+			}
+		}
 	}
 	return &m, nil
+}
+
+// validSubject accepts a subject that can be published to: dot-separated,
+// non-empty tokens without whitespace or wildcards.
+func validSubject(s string) error {
+	for _, token := range strings.Split(s, ".") {
+		if token == "" {
+			return fmt.Errorf("subject %q has an empty token", s)
+		}
+		if strings.ContainsAny(token, " \t\r\n*>") {
+			return fmt.Errorf("subject %q has whitespace or a wildcard", s)
+		}
+	}
+	return nil
 }
 
 // subjectFor returns the subject for a message published to topic. skip is
@@ -149,7 +175,7 @@ func (m *natsMapping) subjectFor(topic string, md message.Metadata) (subject str
 	t, ok := m.Topics[topic]
 	switch {
 	case !ok:
-		return "unmapped." + subjectToken(topic), false, "topic not in the mapping"
+		return "unmapped." + subjectToken(topic), false, reasonUnmappedTopic
 	case t.Skip:
 		return "", true, ""
 	case t.Subject != "":
@@ -164,6 +190,12 @@ func (m *natsMapping) subjectFor(topic string, md message.Metadata) (subject str
 	}
 	return t.Domain + ".unmapped." + subjectToken(value), false, t.Attribute + " not in the mapping"
 }
+
+// MetadataUnmappedTopic is set on messages published to unmapped.<topic>:
+// the topic as the service published it.
+const MetadataUnmappedTopic = "unmapped_topic"
+
+const reasonUnmappedTopic = "topic not in the mapping"
 
 var nonTokenChars = regexp.MustCompile(`[^a-z0-9_-]+`)
 
@@ -217,6 +249,11 @@ func (p *natsPublisher) Publish(topic string, messages ...*message.Message) erro
 			continue
 		}
 		if fallback != "" {
+			if fallback == reasonUnmappedTopic {
+				// unmapped.<topic> is lossy (lower case, _), so two topics can
+				// share it: keep the topic itself in a header.
+				msg.Metadata.Set(MetadataUnmappedTopic, topic)
+			}
 			p.logger.Warn("Published to an unmapped NATS subject: add it to the NATS mapping",
 				logging.StringField("topic", topic),
 				logging.StringField("subject", subject),
