@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"unicode"
 
 	wmjs "github.com/ThreeDotsLabs/watermill-nats/v2/pkg/jetstream"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -161,7 +162,7 @@ func validSubject(s string) error {
 		if token == "" {
 			return fmt.Errorf("subject %q has an empty token", s)
 		}
-		if strings.ContainsAny(token, " \t\r\n*>") {
+		if strings.IndexFunc(token, unicode.IsSpace) >= 0 || strings.ContainsAny(token, "*>") {
 			return fmt.Errorf("subject %q has whitespace or a wildcard", s)
 		}
 	}
@@ -251,14 +252,16 @@ func (p *natsPublisher) Publish(topic string, messages ...*message.Message) erro
 		if fallback != "" {
 			if fallback == reasonUnmappedTopic {
 				// unmapped.<topic> is lossy (lower case, _), so two topics can
-				// share it: keep the topic itself in a header.
+				// share it: keep the topic itself in a header. On a copy, so
+				// the caller's message doesn't carry it to a later publish.
+				msg = msg.CopyWithContext()
 				msg.Metadata.Set(MetadataUnmappedTopic, topic)
 			}
 			p.logger.Warn("Published to an unmapped NATS subject: add it to the NATS mapping",
-				logging.StringField("topic", topic),
-				logging.StringField("subject", subject),
-				logging.StringField("reason", fallback),
-				logging.StringField("msg_uuid", msg.UUID),
+				logging.String("topic", topic),
+				logging.String("subject", subject),
+				logging.String("reason", fallback),
+				logging.String("msg_uuid", msg.UUID),
 			)
 		}
 		if err := p.inner.Publish(subject, msg); err != nil {

@@ -201,6 +201,28 @@ func TestNATSUnmappedTopicKeepsTheTopic(t *testing.T) {
 	}
 }
 
+func TestNATSUnmappedTopicHeaderStaysOffTheCallersMessage(t *testing.T) {
+	env := setupNATS(t)
+	p := env.publisher(t)
+	msg := newMsg("reused", nil)
+	if err := p.Publish("other.topic", msg); err != nil {
+		t.Fatal(err)
+	}
+	if v := msg.Metadata.Get(MetadataUnmappedTopic); v != "" {
+		t.Errorf("the caller's message got %s = %q", MetadataUnmappedTopic, v)
+	}
+	if err := p.Publish("thing.created", msg); err != nil {
+		t.Fatal(err)
+	}
+	got := env.last(t, "THINGS", "things.thing.created")
+	if got == nil {
+		t.Fatal("not published")
+	}
+	if v := got.Header.Get(MetadataUnmappedTopic); v != "" {
+		t.Errorf("mapped publish has %s = %q", MetadataUnmappedTopic, v)
+	}
+}
+
 func TestNATSSkippedTopic(t *testing.T) {
 	env := setupNATS(t)
 	p := env.publisher(t)
@@ -285,17 +307,18 @@ func TestNATSConfigErrorsPanic(t *testing.T) {
 		config PublisherConfig
 		want   string
 	}{
-		"unknown broker":          {PublisherConfig{Broker: "kafka"}, "unknown broker"},
-		"no URL":                  {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{MappingFile: env.mapping}}, "NATS_URL"},
-		"no mapping":              {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url}}, "NATS_MAPPING_FILE"},
-		"user and creds":          {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: env.mapping, User: "u", Password: "p", CredsFile: "/c"}}, "not both"},
-		"two kinds":               {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    skip: true\n    subject: x.y.z\n")}}, "exactly one of"},
-		"attribute no domain":     {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n")}}, "no domain"},
-		"subject with a space":    {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    subject: x.y z\n")}}, "whitespace or a wildcard"},
-		"subject with a wildcard": {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n    domain: x\n    subjects:\n      V: x.>\n")}}, "whitespace or a wildcard"},
-		"empty token":             {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    subject: x..y\n")}}, "empty token"},
-		"bad domain":              {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n    domain: my domain\n")}}, "whitespace or a wildcard"},
-		"server down":             {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: "nats://127.0.0.1:1", MappingFile: env.mapping}}, "connecting to NATS"},
+		"unknown broker":           {PublisherConfig{Broker: "kafka"}, "unknown broker"},
+		"no URL":                   {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{MappingFile: env.mapping}}, "NATS_URL"},
+		"no mapping":               {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url}}, "NATS_MAPPING_FILE"},
+		"user and creds":           {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: env.mapping, User: "u", Password: "p", CredsFile: "/c"}}, "not both"},
+		"two kinds":                {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    skip: true\n    subject: x.y.z\n")}}, "exactly one of"},
+		"attribute no domain":      {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n")}}, "no domain"},
+		"subject with a space":     {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    subject: x.y z\n")}}, "whitespace or a wildcard"},
+		"subject with a wildcard":  {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n    domain: x\n    subjects:\n      V: x.>\n")}}, "whitespace or a wildcard"},
+		"subject with a form feed": {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    subject: \"x.y\\f\"\n")}}, "whitespace or a wildcard"},
+		"empty token":              {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    subject: x..y\n")}}, "empty token"},
+		"bad domain":               {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: env.url, MappingFile: bad("topics:\n  a:\n    attribute: event_type\n    domain: my domain\n")}}, "whitespace or a wildcard"},
+		"server down":              {PublisherConfig{Broker: BrokerNATS, NATS: NATSConfig{URL: "nats://127.0.0.1:1", MappingFile: env.mapping}}, "connecting to NATS"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			for _, v := range []string{"BROKER", "NATS_URL", "NATS_USER", "NATS_PASSWORD", "NATS_CREDS_FILE", "NATS_MAPPING_FILE", "NATS_CA_FILE"} {
