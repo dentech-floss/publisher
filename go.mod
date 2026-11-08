@@ -5,9 +5,13 @@ go 1.26.0
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.3
 	github.com/ThreeDotsLabs/watermill-googlecloud/v2 v2.0.1
+	github.com/ThreeDotsLabs/watermill-nats/v2 v2.2.0
 	github.com/dentech-floss/logging v0.5.0
 	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.2
+	github.com/nats-io/nats-server/v2 v2.15.2
+	github.com/nats-io/nats.go v1.55.0
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
+	go.yaml.in/yaml/v3 v3.0.6
 	google.golang.org/api v0.308.0
 	google.golang.org/protobuf v1.36.12
 )
@@ -19,19 +23,26 @@ require (
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
 	cloud.google.com/go/iam v1.12.0 // indirect
 	cloud.google.com/go/pubsub/v2 v2.6.0 // indirect
+	github.com/antithesishq/antithesis-sdk-go v0.8.0-default-no-op // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/s2a-go v0.1.11 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.23 // indirect
 	github.com/googleapis/gax-go/v2 v2.26.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
+	github.com/minio/highwayhash v1.0.4 // indirect
+	github.com/nats-io/jwt/v2 v2.8.2 // indirect
+	github.com/nats-io/nkeys v0.4.16 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sony/gobreaker v1.0.0 // indirect

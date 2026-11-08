@@ -2,6 +2,8 @@ package publisher
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -25,9 +27,22 @@ var (
 	defaultGrpcConnectionPool = 10
 )
 
+const (
+	// BrokerPubSub publishes to Google Cloud Pub/Sub.
+	BrokerPubSub = "pubsub"
+	// BrokerNATS publishes to NATS JetStream, see NATSConfig.
+	BrokerNATS = "nats"
+)
+
 type PublisherConfig struct {
+	// Broker is BrokerPubSub or BrokerNATS. Defaults to the BROKER
+	// environment variable. If both are empty, OnGCP decides: Pub/Sub on
+	// GCP, otherwise a FakePublisher that only records the messages.
+	Broker string
+	// NATS is the connection and mapping file. Only used with BrokerNATS.
+	NATS                   NATSConfig
 	OnGCP                  bool
-	ProjectId              string  // only applicable if OnGCP is true
+	ProjectId              string  // only applicable with Pub/Sub
 	Name                   *string // defaults to "pubsub.Publish" if not set
 	ConnectTimeoutSecs     *int
 	PublishTimeoutSecs     *int
@@ -36,6 +51,10 @@ type PublisherConfig struct {
 }
 
 func (c *PublisherConfig) setDefaults() {
+	if c.Broker == "" {
+		c.Broker = os.Getenv("BROKER")
+	}
+	c.NATS.setDefaults()
 	if c.Name == nil {
 		c.Name = &defaultPublisherName
 	}
@@ -107,7 +126,13 @@ func NewPublisher(
 	var publisher message.Publisher
 	var err error
 
-	if config.OnGCP {
+	switch {
+	case config.Broker == BrokerNATS:
+		publisher, err = newNATSPublisher(logger, *config.Name, config.NATS)
+		if err != nil {
+			panic(fmt.Sprintf("publisher: BROKER=nats: %v", err))
+		}
+	case config.Broker == BrokerPubSub || (config.Broker == "" && config.OnGCP):
 		publisher, err = googlecloud.NewPublisher(
 			googlecloud.PublisherConfig{
 				ProjectID:      config.ProjectId,
@@ -119,8 +144,10 @@ func NewPublisher(
 			},
 			logging.NewWatermillAdapter(logger),
 		)
-	} else {
+	case config.Broker == "":
 		publisher = NewFakePublisher()
+	default:
+		panic(fmt.Sprintf("publisher: unknown broker %q (BROKER must be %q or %q)", config.Broker, BrokerPubSub, BrokerNATS))
 	}
 	if err != nil {
 		panic(err)
