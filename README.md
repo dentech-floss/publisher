@@ -12,6 +12,51 @@ Another thing that's built into this lib is retry functionality, where a configu
 go get github.com/dentech-floss/publisher@v0.2.3
 ```
 
+## Broker
+
+`PublisherConfig.Broker` (or the `BROKER` environment variable, if the field is empty) picks where messages go:
+
+- `pubsub`: Google Cloud Pub/Sub, in `ProjectId`.
+- `nats`: NATS JetStream, see below.
+- Empty (both unset): `OnGCP` decides, as before: Pub/Sub on GCP, otherwise a `FakePublisher` that only records the messages.
+
+Any other value panics in `NewPublisher`. The service code is the same for all: `Publish(topic, msg)` with the Pub/Sub topic name.
+
+## NATS JetStream
+
+With `BROKER=nats`, each message is published to the NATS subject that a mapping file gives for its topic, and its metadata, the trace context included, travels as NATS headers. The message UUID is also the `Nats-Msg-Id`, so a publish that's retried isn't stored twice. Streams aren't created by the library: a subject that no stream captures makes `Publish` fail.
+
+Settings (each `PublisherConfig.NATS` field falls back to the environment variable):
+
+| Field | Environment | |
+| --- | --- | --- |
+| `URL` | `NATS_URL` | e.g. `tls://nats.example:4222` |
+| `CAFile` | `NATS_CA_FILE` | Optional PEM file with the server's CA |
+| `User`, `Password` | `NATS_USER`, `NATS_PASSWORD` | Log in with a user from the server's config |
+| `CredsFile` | `NATS_CREDS_FILE` | Or log in with a JWT + NKey creds file (operator mode). Not together with a user |
+| `MappingFile` | `NATS_MAPPING_FILE` | The mapping file below |
+
+The mapping file has an entry per topic, with exactly one of `skip`, `subject` or `attribute`. Other sections in it (for example the subscribers' consumers) are ignored:
+
+```yaml
+topics:
+  appointment.claimed:          # every message goes to one subject
+    subject: appointments.appointment.claimed
+  appointment:                  # the event_type metadata picks the subject
+    attribute: event_type
+    domain: appointments
+    subjects:
+      EVENT_TYPE_BOOKED: appointments.appointment.booked
+      EVENT_TYPE_CANCELLED: appointments.appointment.cancelled
+  appointment.legacy_booked:    # not published at all with NATS
+    skip: true
+```
+
+Fallbacks, each logged as a warning so missing entries show up:
+
+- A missing or unknown attribute value goes to `<domain>.unmapped.<value>` (lower case; `none` when the message has no value), which the domain's stream still captures.
+- A topic that isn't in the mapping goes to `unmapped.<topic>`. Give `unmapped.>` a stream of its own if you want to keep those.
+
 ## Usage
 
 Create the publisher:
@@ -31,7 +76,7 @@ func main() {
     publisher := publisher.NewPublisher(
         logger,
         &publisher.PublisherConfig{
-            OnGCP:       metadata.OnGCP,
+            OnGCP:       metadata.OnGCP, // used only when BROKER is unset
             ProjectId:   metadata.ProjectID,
             //RetryConfig: &PublisherRetryConfig{...}, provide this to customize the retry settings
         },
